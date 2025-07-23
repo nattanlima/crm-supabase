@@ -1579,9 +1579,22 @@
         }
         
         function showTaskEditor(taskId) {
-            const task = appData.tasks.find(t => t.id_tarefa === parseInt(taskId));
+            // Verificar se os dados das tarefas estão carregados
+            if (!appData.tasks || appData.tasks.length === 0) {
+                showToast('Dados das tarefas não carregados. Tente novamente.');
+                return;
+            }
+            
+            // Buscar a tarefa tanto por string quanto por número
+            const task = appData.tasks.find(t => 
+                t.id_tarefa === parseInt(taskId) || 
+                t.id_tarefa === taskId || 
+                t.id_tarefa.toString() === taskId.toString()
+            );
+            
             if (!task) {
-                showToast('Tarefa não encontrada');
+                console.error('Tarefa não encontrada. TaskId:', taskId, 'Tarefas disponíveis:', appData.tasks.map(t => t.id_tarefa));
+                showToast('Tarefa não encontrada. ID: ' + taskId);
                 return;
             }
             
@@ -1705,9 +1718,22 @@
         }
         
         function showTicketEditor(ticketId) {
-            const ticket = appData.tickets.find(t => t.id_ticket === parseInt(ticketId));
+            // Verificar se os dados dos tickets estão carregados
+            if (!appData.tickets || appData.tickets.length === 0) {
+                showToast('Dados dos tickets não carregados. Tente novamente.');
+                return;
+            }
+            
+            // Buscar o ticket tanto por string quanto por número
+            const ticket = appData.tickets.find(t => 
+                t.id_ticket === parseInt(ticketId) || 
+                t.id_ticket === ticketId || 
+                t.id_ticket.toString() === ticketId.toString()
+            );
+            
             if (!ticket) {
-                showToast('Ticket não encontrado');
+                console.error('Ticket não encontrado. TicketId:', ticketId, 'Tickets disponíveis:', appData.tickets.map(t => t.id_ticket));
+                showToast('Ticket não encontrado. ID: ' + ticketId);
                 return;
             }
             
