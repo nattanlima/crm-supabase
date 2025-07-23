@@ -1173,6 +1173,11 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Prazo Final</label>
                                 <input type="date" id="new-task-deadline" class="form-input !mt-0">
+                                <div class="flex gap-2 mt-2">
+                                    <button type="button" class="date-shortcut-btn suggestion-btn" data-days="3">3 dias</button>
+                                    <button type="button" class="date-shortcut-btn suggestion-btn" data-days="7">7 dias</button>
+                                    <button type="button" class="date-shortcut-btn suggestion-btn" data-days="15">15 dias</button>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-4">
@@ -1219,6 +1224,17 @@
             // Salvar nova tarefa
             saveBtn.addEventListener('click', () => {
                 handleCreateTask(clientId, parentId);
+            });
+            
+            // Adicionar event listeners para os botões de atalho de data
+            container.querySelectorAll('.date-shortcut-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const days = parseInt(e.target.dataset.days);
+                    const today = new Date();
+                    const futureDate = new Date(today.getTime() + (days * 24 * 60 * 60 * 1000));
+                    const formattedDate = futureDate.toISOString().split('T')[0];
+                    document.getElementById('new-task-deadline').value = formattedDate;
+                });
             });
         }
         
@@ -1562,14 +1578,256 @@
             console.log('renderListView - função placeholder');
         }
         
-        function showTaskEditor(taskId) { 
-            // Implementação do editor de tarefas será feita posteriormente
-            console.log('showTaskEditor - função placeholder para taskId:', taskId);
+        function showTaskEditor(taskId) {
+            const task = appData.tasks.find(t => t.id_tarefa === parseInt(taskId));
+            if (!task) {
+                showToast('Tarefa não encontrada');
+                return;
+            }
+            
+            const container = document.getElementById('task-editor-container');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            
+            const formHtml = `
+                <div class="task-form-container task-form-expanded" id="edit-task-form">
+                    <h5 class="text-lg font-semibold text-gray-800 mb-4">Editar Tarefa</h5>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Título da Tarefa</label>
+                        <input 
+                            type="text" 
+                            id="edit-task-title" 
+                            class="form-input !mt-0" 
+                            value="${task.titulo_tarefa || ''}"
+                            placeholder="Título da tarefa..."
+                        >
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+                            <select id="edit-task-responsible" class="form-input !mt-0">
+                                <option value="">Selecionar responsável</option>
+                                ${appData.users.map(user => `<option value="${user.id_usuario}" ${task.responsavel_id === user.id_usuario ? 'selected' : ''}>${user.nome_usuario}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Prazo Final</label>
+                            <input type="date" id="edit-task-deadline" class="form-input !mt-0" value="${task.prazo_final || ''}">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                        <textarea id="edit-task-description" rows="3" class="form-input !mt-0" placeholder="Descrição detalhada da tarefa...">${task.descricao_detalhada || ''}</textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button id="cancel-edit-task-btn" class="px-4 py-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-full font-semibold">Cancelar</button>
+                        <button id="save-edit-task-btn" class="px-4 py-2 text-white bg-[#2fc36a] hover:bg-[#29a85b] rounded-full font-semibold flex items-center" data-task-id="${taskId}">
+                            <i class="fas fa-save mr-2"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = formHtml;
+            
+            const cancelBtn = document.getElementById('cancel-edit-task-btn');
+            const saveBtn = document.getElementById('save-edit-task-btn');
+            
+            // Focar no campo de título
+            document.getElementById('edit-task-title').focus();
+            
+            // Cancelar edição da tarefa
+            cancelBtn.addEventListener('click', () => {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            });
+            
+            // Salvar alterações da tarefa
+            saveBtn.addEventListener('click', () => {
+                handleEditTask(taskId);
+            });
         }
         
-        function showTicketEditor(ticketId) { 
-            // Implementação do editor de tickets será feita posteriormente
-            console.log('showTicketEditor - função placeholder para ticketId:', ticketId);
+        async function handleEditTask(taskId) {
+            const title = document.getElementById('edit-task-title').value.trim();
+            const responsibleId = document.getElementById('edit-task-responsible').value || null;
+            const deadline = document.getElementById('edit-task-deadline').value || null;
+            const description = document.getElementById('edit-task-description').value.trim() || null;
+            
+            if (!title) {
+                showToast('O título da tarefa é obrigatório');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('save-edit-task-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+            
+            try {
+                const taskData = {
+                    titulo_tarefa: title,
+                    descricao_detalhada: description,
+                    responsavel_id: responsibleId ? responsibleId.toString() : null,
+                    prazo_final: deadline
+                };
+                
+                const { error } = await dbClient
+                    .from('tarefas')
+                    .update(taskData)
+                    .eq('id_tarefa', taskId);
+                
+                if (error) throw error;
+                
+                // Atualizar dados locais
+                const task = appData.tasks.find(t => t.id_tarefa === parseInt(taskId));
+                if (task) {
+                    Object.assign(task, taskData);
+                }
+                
+                // Atualizar a lista de tarefas
+                const form = modalContent.querySelector('#modal-form');
+                if (form && form.dataset.clientId) {
+                    renderTaskList(parseInt(form.dataset.clientId));
+                }
+                
+                // Limpar o formulário
+                document.getElementById('task-editor-container').classList.add('hidden');
+                document.getElementById('task-editor-container').innerHTML = '';
+                
+                showToast('Tarefa atualizada com sucesso!');
+                
+            } catch (error) {
+                console.error('Erro ao atualizar tarefa:', error);
+                showToast('Erro ao atualizar tarefa: ' + error.message);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar Alterações';
+            }
+        }
+        
+        function showTicketEditor(ticketId) {
+            const ticket = appData.tickets.find(t => t.id_ticket === parseInt(ticketId));
+            if (!ticket) {
+                showToast('Ticket não encontrado');
+                return;
+            }
+            
+            const container = document.getElementById('ticket-editor-container');
+            container.innerHTML = '';
+            container.classList.remove('hidden');
+            
+            const formHtml = `
+                <div class="task-form-container task-form-expanded" id="edit-ticket-form">
+                    <h5 class="text-lg font-semibold text-gray-800 mb-4">Editar Ticket</h5>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Título do Ticket</label>
+                        <input 
+                            type="text" 
+                            id="edit-ticket-title" 
+                            class="form-input !mt-0" 
+                            value="${ticket.titulo_ticket || ''}"
+                            placeholder="Título do ticket..."
+                        >
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+                            <select id="edit-ticket-responsible" class="form-input !mt-0">
+                                <option value="">Selecionar responsável</option>
+                                ${appData.users.map(user => `<option value="${user.id_usuario}" ${ticket.responsavel_id === user.id_usuario ? 'selected' : ''}>${user.nome_usuario}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Prazo Final</label>
+                            <input type="date" id="edit-ticket-deadline" class="form-input !mt-0" value="${ticket.prazo_final || ''}">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                        <textarea id="edit-ticket-description" rows="3" class="form-input !mt-0" placeholder="Descrição detalhada do ticket...">${ticket.descricao_detalhada || ''}</textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button id="cancel-edit-ticket-btn" class="px-4 py-2 text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-full font-semibold">Cancelar</button>
+                        <button id="save-edit-ticket-btn" class="px-4 py-2 text-white bg-[#2fc36a] hover:bg-[#29a85b] rounded-full font-semibold flex items-center" data-ticket-id="${ticketId}">
+                            <i class="fas fa-save mr-2"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = formHtml;
+            
+            const cancelBtn = document.getElementById('cancel-edit-ticket-btn');
+            const saveBtn = document.getElementById('save-edit-ticket-btn');
+            
+            // Focar no campo de título
+            document.getElementById('edit-ticket-title').focus();
+            
+            // Cancelar edição do ticket
+            cancelBtn.addEventListener('click', () => {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            });
+            
+            // Salvar alterações do ticket
+            saveBtn.addEventListener('click', () => {
+                handleEditTicket(ticketId);
+            });
+        }
+        
+        async function handleEditTicket(ticketId) {
+            const title = document.getElementById('edit-ticket-title').value.trim();
+            const responsibleId = document.getElementById('edit-ticket-responsible').value || null;
+            const deadline = document.getElementById('edit-ticket-deadline').value || null;
+            const description = document.getElementById('edit-ticket-description').value.trim() || null;
+            
+            if (!title) {
+                showToast('O título do ticket é obrigatório');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('save-edit-ticket-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+            
+            try {
+                const ticketData = {
+                    titulo_ticket: title,
+                    descricao_detalhada: description,
+                    responsavel_id: responsibleId ? responsibleId.toString() : null,
+                    prazo_final: deadline
+                };
+                
+                const { error } = await dbClient
+                    .from('tickets')
+                    .update(ticketData)
+                    .eq('id_ticket', ticketId);
+                
+                if (error) throw error;
+                
+                // Atualizar dados locais
+                const ticket = appData.tickets.find(t => t.id_ticket === parseInt(ticketId));
+                if (ticket) {
+                    Object.assign(ticket, ticketData);
+                }
+                
+                // Atualizar a lista de tickets
+                const form = modalContent.querySelector('#modal-form');
+                if (form && form.dataset.clientId) {
+                    renderTicketList(parseInt(form.dataset.clientId));
+                }
+                
+                // Limpar o formulário
+                document.getElementById('ticket-editor-container').classList.add('hidden');
+                document.getElementById('ticket-editor-container').innerHTML = '';
+                
+                showToast('Ticket atualizado com sucesso!');
+                
+            } catch (error) {
+                console.error('Erro ao atualizar ticket:', error);
+                showToast('Erro ao atualizar ticket: ' + error.message);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Salvar Alterações';
+            }
         }
         
         function openItemEditorModal() { 
