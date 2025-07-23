@@ -120,7 +120,7 @@
         .tab-button.active { border-color: #2fc36a; color: #15803d; font-weight: 600; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .suggestion-btn { background-color: #f4f4f5; color: #52525b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; transition: background-color 0.2s; }
+        .suggestion-btn { background-color: #f4f4f5; color: #52525b; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; transition: background-color: 0.2s; }
         .suggestion-btn:hover { background-color: #e4e4e7; }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.02); } }
         .pulse-animation { animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -417,9 +417,9 @@
             loginError.classList.add('hidden');
 
             try {
-                // Lógica de login agora usa o cliente Supabase
+                // CORREÇÃO: Usando nome da tabela em minúsculas
                 const { data, error } = await dbClient
-                    .from('USUARIOS')
+                    .from('usuarios')
                     .select('*')
                     .eq('email', email)
                     .eq('telefone', telefone)
@@ -445,17 +445,18 @@
         async function initializeApp() {
             try {
                 // 1. Buscar todos os dados iniciais do Supabase
+                // CORREÇÃO: Usando nomes de tabelas em minúsculas
                 const [
                     clientsRes, statusesRes, usersRes, tagsRes, 
                     clientTagsRes, tasksRes, ticketsRes
                 ] = await Promise.all([
-                    dbClient.from('CLIENTES').select('*'),
-                    dbClient.from('STATUS').select('*'),
-                    dbClient.from('USUARIOS').select('*'),
-                    dbClient.from('TAGS').select('*'),
-                    dbClient.from('CLIENTE_TAGS').select('*'),
-                    dbClient.from('TAREFAS').select('*'),
-                    dbClient.from('TICKETS').select('*')
+                    dbClient.from('clientes').select('*'),
+                    dbClient.from('status').select('*'),
+                    dbClient.from('usuarios').select('*'),
+                    dbClient.from('tags').select('*'),
+                    dbClient.from('cliente_tags').select('*'),
+                    dbClient.from('tarefas').select('*'),
+                    dbClient.from('tickets').select('*')
                 ]);
 
                 // Verificação de erros para cada requisição
@@ -502,23 +503,23 @@
         // --- LÓGICA DE TEMPO REAL (REALTIME) DO SUPABASE ---
         function setupRealtimeSubscriptions() {
             console.log("Configurando inscrições de tempo real...");
-
+            // CORREÇÃO: Usando nomes de tabelas em minúsculas
             dbClient.channel('public-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'CLIENTES' }, payload => {
-                    console.log('Alteração em CLIENTES:', payload);
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, payload => {
+                    console.log('Alteração em clientes:', payload);
                     handleRealtimeChange(payload, 'clients', 'id_cliente');
                 })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'TAREFAS' }, payload => {
-                    console.log('Alteração em TAREFAS:', payload);
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas' }, payload => {
+                    console.log('Alteração em tarefas:', payload);
                     handleRealtimeChange(payload, 'tasks', 'id_tarefa');
                 })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'TICKETS' }, payload => {
-                    console.log('Alteração em TICKETS:', payload);
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, payload => {
+                    console.log('Alteração em tickets:', payload);
                     handleRealtimeChange(payload, 'tickets', 'id_ticket');
                 })
-                 .on('postgres_changes', { event: '*', schema: 'public', table: 'CLIENTE_TAGS' }, payload => {
-                    console.log('Alteração em CLIENTE_TAGS:', payload);
-                    // Para CLIENTE_TAGS, a chave é composta, então o tratamento é um pouco diferente
+                 .on('postgres_changes', { event: '*', schema: 'public', table: 'cliente_tags' }, payload => {
+                    console.log('Alteração em cliente_tags:', payload);
+                    // Para cliente_tags, a chave é composta, então o tratamento é um pouco diferente
                     const { eventType, new: newRecord, old: oldRecord } = payload;
                     switch (eventType) {
                         case 'INSERT':
@@ -873,9 +874,9 @@
                         }
                         
                         try {
-                            // Atualiza no Supabase
+                            // CORREÇÃO: Usando nome da tabela em minúsculas
                             const { error } = await dbClient
-                                .from('CLIENTES')
+                                .from('clientes')
                                 .update({ status: newStatus })
                                 .eq('id_cliente', clientId);
 
