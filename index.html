@@ -16,8 +16,8 @@
     <!-- Ícone para "Adicionar à Tela de Início" no iOS -->
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/nattanlima/meu-crm-pwa/main/icons/apple-touch-icon.png">
 
-    <!-- Manifesto do PWA -->
-    <link rel="manifest" id="manifest">
+    <!-- Manifesto do PWA (agora linka para o arquivo externo) -->
+    <link rel="manifest" href="manifest.json">
     <!-- FIM: Tags para PWA e Ícones Personalizados -->
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -102,7 +102,7 @@
         }
         
         /* UPGRADE: Estilo para a nova visão de lista */
-        .list-item-row { transition: background-color 0.2s, border-color 0.2s; }
+        .list-item-row { transition: background-color: 0.2s, border-color: 0.2s; }
         .list-item-row:hover {
             background-color: #f8fafc; /* slate-50 */
         }
@@ -930,8 +930,37 @@
 
         // --- Lógica do PWA ---
         document.addEventListener('DOMContentLoaded', () => {
-            // ... (código original, sem alterações imediatas)
+            // REMOVIDO: Código que criava o manifesto e o service worker dinamicamente.
+            // Agora eles são arquivos externos.
+
+            // Registro do Service Worker (agora aponta para o arquivo sw.js)
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(reg => console.log('ServiceWorker registrado:', reg.scope))
+                        .catch(err => console.log('Falha no registro do ServiceWorker:', err));
+                });
+            }
+
+            const savedUser = localStorage.getItem('crmUser');
+            if (savedUser) { 
+                currentUser = JSON.parse(savedUser); 
+                showApp(true); 
+            } else { 
+                showLogin(); 
+            }
+            clientModal.addEventListener('click', (e) => { if (e.target === clientModal) hideClientModal(); });
+            document.addEventListener('keydown', (e) => { 
+                if (e.key === 'Escape') {
+                    if (!document.getElementById('item-editor-modal').classList.contains('hidden')) {
+                        closeItemEditorModal();
+                    } else if (!clientModal.classList.contains('hidden')) {
+                        hideClientModal();
+                    }
+                }
+            });
         });
+
 
         window.addEventListener('beforeinstallprompt', (e) => {
             // ... (código original, sem alterações)
@@ -1032,27 +1061,6 @@
         function saveItemFromEditor() {
             // ... (precisa ser adaptado para Supabase)
         }
-
-        // --- Inicialização do App ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('crmUser');
-            if (savedUser) { 
-                currentUser = JSON.parse(savedUser); 
-                showApp(true); 
-            } else { 
-                showLogin(); 
-            }
-            clientModal.addEventListener('click', (e) => { if (e.target === clientModal) hideClientModal(); });
-            document.addEventListener('keydown', (e) => { 
-                if (e.key === 'Escape') {
-                    if (!document.getElementById('item-editor-modal').classList.contains('hidden')) {
-                        closeItemEditorModal();
-                    } else if (!clientModal.classList.contains('hidden')) {
-                        hideClientModal();
-                    }
-                }
-            });
-        });
 
     </script>
 </body>
