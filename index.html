@@ -668,7 +668,7 @@
             const card = document.createElement('div');
             card.className = 'kanban-card bg-white rounded-lg p-4 mb-3 border border-gray-200 hover:border-green-400 hover:shadow-md cursor-pointer transition-all';
             card.dataset.clientId = client.id_cliente;
-            const clientTags = (appData.client_tags || []).filter(ct => ct.id_cliente === client.id_cliente).map(ct => (appData.tags || []).find(t => t.id_tag === ct.id_tag)).filter(Boolean);
+            const clientTags = (appData.client_tags || []).filter(ct => ct.id_cliente === client.id_cliente.toString()).map(ct => (appData.tags || []).find(t => t.id_tag === ct.id_tag)).filter(Boolean);
             const tagsHtml = clientTags.map(tag => `<span class="text-xs font-medium mr-1 mb-1 px-2 py-0.5 rounded-full" style="background-color:${tag.cor}20; color:${tag.cor};">${tag.nome_tag}</span>`).join('');
             const progress = calculateProgress(client.id_cliente);
             const clientTasks = appData.tasks ? appData.tasks.filter(t => t.id_cliente === client.id_cliente && !t.concluido && t.prazo_final) : [];
